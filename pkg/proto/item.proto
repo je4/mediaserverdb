@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+option go_package = "github.com/je4/mediaserverdb/v2/pkg/proto";
+option java_package = "ch.unibas.ub.mediaserver.db";
+option java_outer_classname = "ItemProto";
+option java_multiple_files = true;
+option objc_class_prefix = "UBB";
+option csharp_namespace = "Unibas.UB.Mediaserver.DB";
+
+package proto;
+
+message ItemIdentifier {
+  string collection = 1;
+  string signature = 2;
+}
+
+message NewItem {
+  ItemIdentifier identifier = 1;
+  string urn = 2;
+  bool public = 3;
+  optional ItemIdentifier parent = 4;
+  optional bytes publicActions = 5;
+}
+
+
+
