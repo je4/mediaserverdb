@@ -19,7 +19,6 @@ func printConnState(state *tls.ConnectionState, title string) {
 	log.Printf("DidResume: %t", state.DidResume)
 	log.Printf("CipherSuite: %x", state.CipherSuite)
 	log.Printf("NegotiatedProtocol: %s", state.NegotiatedProtocol)
-	log.Printf("NegotiatedProtocolIsMutual: %t", state.NegotiatedProtocolIsMutual)
 
 	log.Print("Certificate chain:")
 	for i, cert := range state.PeerCertificates {
@@ -31,40 +30,22 @@ func printConnState(state *tls.ConnectionState, title string) {
 }
 
 func TestHTTPMTLSConfig(t *testing.T) {
-	name := cert.DefaultName()
-	name.CommonName = "dummyServer"
-	certPEM, certPrivKeyPEM, err := cert.CreateServerCertificate(
-		time.Hour,
-		cert.DefaultCACrt,
-		cert.DefaultCAKey,
-		cert.DefaultIPAddresses(),
-		cert.DefaultDNSNames(),
-		name,
-		cert.DefaultKeyType(),
-	)
-
-	serverTLSConf, err := CreateServerTLSConfig(
-		time.Second*5,
-		cert.DefaultCACrt,
-		cert.DefaultCAKey,
-		cert.DefaultIPAddresses(),
-		cert.DefaultDNSNames(),
-		name,
-		cert.DefaultKeyType(),
-	)
+	serverTLSConf, err := CreateServerMTLSConfigDefault()
 	if err != nil {
 		t.Fatalf("cannot create server tls config: %v", err)
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		//printConnState(r.TLS, "Client")
 		printConnState(r.TLS, "Client")
 		w.Write([]byte("pong"))
 	})
 
-	certChannel := make(chan *tls.Certificate)
-	if err := UpgradeTLSConfigServerExchanger(serverTLSConf, certChannel); err != nil {
+	serverCertChannel, err := UpgradeTLSConfigServerExchanger(serverTLSConf)
+	if err != nil {
 		t.Fatalf("cannot upgrade client tls config: %v", err)
 	}
+	defer close(serverCertChannel)
 
 	srv := http.Server{
 		Addr:      "localhost:12345",
@@ -78,15 +59,21 @@ func TestHTTPMTLSConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot create client tls config: %v", err)
 	}
+	clientCertChannel, err := UpgradeTLSConfigClientExchanger(clientTLSConf)
+	if err != nil {
+		t.Fatalf("cannot upgrade client tls config: %v", err)
+	}
+	defer close(clientCertChannel)
 	tr := http.Transport{
 		TLSClientConfig: clientTLSConf,
 	}
+	tr.IdleConnTimeout = time.Second * 5
 	client := http.Client{
 		Transport: &tr,
 	}
 	resp, err := client.Get("https://localhost:12345/ping")
 	if err != nil {
-		t.Errorf("cannot get https://localhost:12345/ping: %v", err)
+		t.Fatalf("cannot get https://localhost:12345/ping: %v", err)
 	}
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("unexpected status code: %d", resp.StatusCode)
@@ -100,9 +87,9 @@ func TestHTTPMTLSConfig(t *testing.T) {
 	printConnState(resp.TLS, "Server")
 
 	// New certificate
-	name = cert.DefaultName()
+	name := cert.DefaultName()
 	name.CommonName = "dummyServer2"
-	certPEM, certPrivKeyPEM, err = cert.CreateServerCertificate(
+	certPEM, certPrivKeyPEM, err := cert.CreateServerCertificate(
 		time.Hour,
 		cert.DefaultCACrt,
 		cert.DefaultCAKey,
@@ -114,12 +101,35 @@ func TestHTTPMTLSConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot create client certificate: %v", err)
 	}
+	serverCert, err := tls.X509KeyPair(certPEM, certPrivKeyPEM)
+	if err != nil {
+		t.Fatalf("cannot create client certificate: %v", err)
+	}
+	serverCertChannel <- &serverCert
+
+	name = cert.DefaultName()
+	name.CommonName = "dummyClient2"
+	certPEM, certPrivKeyPEM, err = cert.CreateClientCertificate(
+		time.Hour,
+		cert.DefaultCACrt,
+		cert.DefaultCAKey,
+		cert.DefaultIPAddresses(),
+		cert.DefaultDNSNames(),
+		"",
+		"",
+		name,
+		cert.DefaultKeyType(),
+	)
+	if err != nil {
+		t.Fatalf("cannot create client tls config: %v", err)
+	}
 	clientCert, err := tls.X509KeyPair(certPEM, certPrivKeyPEM)
 	if err != nil {
 		t.Fatalf("cannot create client certificate: %v", err)
 	}
-	certChannel <- &clientCert
-	time.Sleep(time.Second * 6)
+	clientCertChannel <- &clientCert
+
+	time.Sleep(time.Second * 7)
 	resp, err = client.Get("https://localhost:12345/ping")
 	if err != nil {
 		t.Errorf("cannot get https://localhost:12345/ping: %v", err)

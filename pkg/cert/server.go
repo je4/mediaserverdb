@@ -58,7 +58,7 @@ func CreateServerCertificate(duration time.Duration, caPEM []byte, caPrivKeyPEM 
 		IPAddresses:  ips,
 		DNSNames:     dnsNames,
 		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(duration),
+		NotAfter:     time.Now().In(time.UTC).Add(duration),
 		SubjectKeyId: []byte{1, 2, 3, 4, 6},
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		KeyUsage:     x509.KeyUsageDigitalSignature,
