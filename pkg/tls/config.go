@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"emperror.dev/errors"
 	"github.com/je4/mediaserverdb/v2/pkg/cert"
+	"slices"
 	"time"
 )
 
@@ -20,12 +21,15 @@ func CreateServerTLSConfig(serverCert tls.Certificate) (*tls.Config, error) {
 	return serverTLSConf, nil
 }
 
-func CreateServerMTLSConfig(cert tls.Certificate) (*tls.Config, error) {
+func CreateServerMTLSConfig(cert tls.Certificate, uri []string) (*tls.Config, error) {
 	tlsConfig, err := CreateServerTLSConfig(cert)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	tlsConfig.VerifyPeerCertificate = func(_ [][]byte, verifiedChains [][]*x509.Certificate) error {
+		if len(uri) == 0 {
+			return nil
+		}
 		if len(verifiedChains) < 1 {
 			return errors.New("no verified chains")
 		}
@@ -33,10 +37,12 @@ func CreateServerMTLSConfig(cert tls.Certificate) (*tls.Config, error) {
 			return errors.New("no verified chain 0")
 		}
 		c := verifiedChains[0][0]
-		if err := c.VerifyHostname("localhost"); err != nil {
-			return errors.Wrap(err, "cannot verify hostname")
+		for _, u := range c.URIs {
+			if slices.Contains(uri, u.String()) {
+				return nil
+			}
 		}
-		return nil
+		return errors.New("no matching URI")
 	}
 	tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 	return tlsConfig, nil
@@ -60,7 +66,7 @@ func CreateServerMTLSConfigDefault() (*tls.Config, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create server certificate")
 	}
-	tlsConfig, err := CreateServerMTLSConfig(serverCert)
+	tlsConfig, err := CreateServerMTLSConfig(serverCert, []string{"grpc:dummy"})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -117,8 +123,8 @@ func CreateClientMTLSConfigDefault() (*tls.Config, error) {
 		cert.DefaultCAKey,
 		cert.DefaultIPAddresses(),
 		cert.DefaultDNSNames(),
-		"",
-		"",
+		nil,
+		[]string{"grpc:dummy"},
 		name,
 		cert.DefaultKeyType(),
 	)

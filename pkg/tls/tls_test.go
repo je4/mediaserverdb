@@ -109,14 +109,15 @@ func TestHTTPMTLSConfig(t *testing.T) {
 
 	name = cert.DefaultName()
 	name.CommonName = "dummyClient2"
+
 	certPEM, certPrivKeyPEM, err = cert.CreateClientCertificate(
 		time.Hour,
 		cert.DefaultCACrt,
 		cert.DefaultCAKey,
 		cert.DefaultIPAddresses(),
 		cert.DefaultDNSNames(),
-		"",
-		"",
+		nil,
+		nil,
 		name,
 		cert.DefaultKeyType(),
 	)

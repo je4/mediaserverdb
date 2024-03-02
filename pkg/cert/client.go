@@ -6,15 +6,14 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"emperror.dev/errors"
-	"encoding/asn1"
 	"encoding/pem"
-	"fmt"
 	"math/big"
 	"net"
+	"net/url"
 	"time"
 )
 
-func CreateClientCertificate(duration time.Duration, caPEM []byte, caPrivKeyPEM []byte, ips []net.IP, dnsNames []string, email, uri string, name *pkix.Name, keyType KeyType) (certPEM []byte, certPrivKeyPEM []byte, err error) {
+func CreateClientCertificate(duration time.Duration, caPEM []byte, caPrivKeyPEM []byte, ips []net.IP, dnsNames []string, email, uri []string, name *pkix.Name, keyType KeyType) (certPEM []byte, certPrivKeyPEM []byte, err error) {
 	if keyType == "" {
 		return nil, nil, errors.New("keyType is required")
 	}
@@ -59,15 +58,17 @@ func CreateClientCertificate(duration time.Duration, caPEM []byte, caPrivKeyPEM 
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 		KeyUsage:     x509.KeyUsageDigitalSignature,
 	}
-	if email != "" && uri != "" {
-		cert.ExtraExtensions = []pkix.Extension{
-			{
-				Id:       asn1.ObjectIdentifier{2, 5, 29, 17},
-				Critical: false,
-				Value:    []byte(fmt.Sprintf("email:%s, URI:%s", email, uri)),
-			},
+	if len(uri) > 0 {
+		cert.URIs = make([]*url.URL, len(uri))
+		for i, u := range uri {
+			cert.URIs[i], err = url.Parse(u)
+			if err != nil {
+				return nil, nil, errors.Wrapf(err, "cannot parse URI %s", u)
+			}
 		}
-
+	}
+	if len(email) > 0 {
+		cert.EmailAddresses = email
 	}
 
 	certPubKey, certPrivKey, err := GenerateKey(keyType)
