@@ -9,55 +9,75 @@ import (
 	"time"
 )
 
-func CreateServerTLSConfig(serverCert tls.Certificate) (*tls.Config, error) {
-	serverTLSConf := &tls.Config{
-		Certificates: []tls.Certificate{serverCert},
+func CreateServerTLSConfig(cert tls.Certificate, mutual bool, uris []string) (*tls.Config, error) {
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
 		MinVersion:   tls.VersionTLS12,
-		GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
-			return &serverCert, nil
-		},
+		/*
+			GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
+				return &cert, nil
+			},
+		*/
 	}
-
-	return serverTLSConf, nil
-}
-
-func CreateServerMTLSConfig(cert tls.Certificate, uri []string) (*tls.Config, error) {
-	tlsConfig, err := CreateServerTLSConfig(cert)
-	if err != nil {
-		return nil, errors.WithStack(err)
+	if !mutual && len(uris) > 0 {
+		return nil, errors.New("uris is only allowed with mutual tls")
 	}
-	tlsConfig.VerifyPeerCertificate = func(_ [][]byte, verifiedChains [][]*x509.Certificate) error {
-		if len(uri) == 0 {
-			return nil
-		}
-		if len(verifiedChains) < 1 {
-			return errors.New("no verified chains")
-		}
-		if len(verifiedChains[0]) < 1 {
-			return errors.New("no verified chain 0")
-		}
-		c := verifiedChains[0][0]
-		for _, u := range c.URIs {
-			if slices.Contains(uri, u.String()) {
+	if mutual {
+		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+		if len(uris) > 0 {
+			tlsConfig.VerifyPeerCertificate = func(_ [][]byte, verifiedChains [][]*x509.Certificate) error {
+				if len(verifiedChains) < 1 {
+					return errors.New("no verified chains")
+				}
+				if len(verifiedChains[0]) < 1 {
+					return errors.New("no verified chain 0")
+				}
+				c := verifiedChains[0][0]
+				clientURIs := []string{}
+				for _, u := range c.URIs {
+					clientURIs = append(clientURIs, u.String())
+				}
+				for _, u := range uris {
+					if !slices.Contains(clientURIs, u) {
+						return errors.Errorf("no match for uri %s", u)
+					}
+				}
+				/*
+					result, err := certinfo.CertificateText(c)
+					if err != nil {
+						return errors.Wrap(err, "cannot get certificate text")
+					}
+					log.Println("cert [0][0]")
+					log.Println(result)
+					if len(verifiedChains[0]) > 1 {
+						result, err := certinfo.CertificateText(verifiedChains[0][1])
+						if err != nil {
+							return errors.Wrap(err, "cannot get certificate text")
+						}
+						log.Println("cert [0][1]")
+						log.Println(result)
+					}
+				*/
 				return nil
 			}
 		}
-		return errors.New("no matching URI")
 	}
-	tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 	return tlsConfig, nil
 }
-func CreateServerMTLSConfigDefault() (*tls.Config, error) {
-	name := cert.DefaultName()
+func CreateServerTLSConfigDefault(mutual bool, uris []string) (*tls.Config, error) {
+	name := cert.DefaultName
 	name.CommonName = "dummyServer"
-	certPEM, certPrivKeyPEM, err := cert.CreateServerCertificate(
+	certPEM, certPrivKeyPEM, err := cert.CreateCertificate(
+		false, true,
 		time.Hour*24*365*10,
 		cert.DefaultCACrt,
 		cert.DefaultCAKey,
-		cert.DefaultIPAddresses(),
-		cert.DefaultDNSNames(),
+		cert.DefaultIPAddresses,
+		cert.DefaultDNSNames,
+		nil,
+		nil,
 		name,
-		cert.DefaultKeyType(),
+		cert.DefaultKeyType,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create server certificate")
@@ -66,7 +86,7 @@ func CreateServerMTLSConfigDefault() (*tls.Config, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create server certificate")
 	}
-	tlsConfig, err := CreateServerMTLSConfig(serverCert, []string{"grpc:dummy"})
+	tlsConfig, err := CreateServerTLSConfig(serverCert, mutual, uris)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -75,28 +95,6 @@ func CreateServerMTLSConfigDefault() (*tls.Config, error) {
 	caCertPool.AppendCertsFromPEM(cert.DefaultCACrt)
 	tlsConfig.ClientCAs = caCertPool
 	return tlsConfig, nil
-}
-
-func CreateServerTLSConfigDefault() (*tls.Config, error) {
-	name := cert.DefaultName()
-	name.CommonName = "dummyServer"
-	certPEM, certPrivKeyPEM, err := cert.CreateServerCertificate(
-		time.Hour*24*365*10,
-		cert.DefaultCACrt,
-		cert.DefaultCAKey,
-		cert.DefaultIPAddresses(),
-		cert.DefaultDNSNames(),
-		name,
-		cert.DefaultKeyType(),
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create server certificate")
-	}
-	serverCert, err := tls.X509KeyPair(certPEM, certPrivKeyPEM)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create server certificate")
-	}
-	return CreateServerTLSConfig(serverCert)
 }
 
 func CreateClientMTLSConfig(clientCert tls.Certificate) (*tls.Config, error) {
@@ -115,18 +113,19 @@ func CreateClientMTLSConfig(clientCert tls.Certificate) (*tls.Config, error) {
 }
 
 func CreateClientMTLSConfigDefault() (*tls.Config, error) {
-	name := cert.DefaultName()
+	name := cert.DefaultName
 	name.CommonName = "dummyClient"
-	certPEM, certPrivKeyPEM, err := cert.CreateClientCertificate(
+	certPEM, certPrivKeyPEM, err := cert.CreateCertificate(
+		true, false,
 		time.Hour*24*365*10,
 		cert.DefaultCACrt,
 		cert.DefaultCAKey,
-		cert.DefaultIPAddresses(),
-		cert.DefaultDNSNames(),
+		cert.DefaultIPAddresses,
+		cert.DefaultDNSNames,
 		nil,
 		[]string{"grpc:dummy"},
 		name,
-		cert.DefaultKeyType(),
+		cert.DefaultKeyType,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create client certificate")

@@ -3,7 +3,6 @@ package tls
 import (
 	"crypto/tls"
 	"emperror.dev/errors"
-	"log"
 	"sync"
 )
 
@@ -44,7 +43,6 @@ func (c *certExchanger) GetCertificateFunc() func(*tls.ClientHelloInfo) (*tls.Ce
 	return func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 		c.m.RLock()
 		defer c.m.RUnlock()
-		log.Println("GetCertificateFunc")
 		return c.cert, nil
 	}
 }
@@ -53,7 +51,6 @@ func (c *certExchanger) GetClientCertificateFunc() func(*tls.CertificateRequestI
 	return func(requestInfo *tls.CertificateRequestInfo) (*tls.Certificate, error) {
 		c.m.RLock()
 		defer c.m.RUnlock()
-		log.Println("GetClientCertificateFunc")
 		return c.cert, nil
 	}
 }

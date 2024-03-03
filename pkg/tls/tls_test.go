@@ -30,7 +30,7 @@ func printConnState(state *tls.ConnectionState, title string) {
 }
 
 func TestHTTPMTLSConfig(t *testing.T) {
-	serverTLSConf, err := CreateServerMTLSConfigDefault()
+	serverTLSConf, err := CreateServerTLSConfigDefault(true, []string{"grpc:dummy"})
 	if err != nil {
 		t.Fatalf("cannot create server tls config: %v", err)
 	}
@@ -87,16 +87,19 @@ func TestHTTPMTLSConfig(t *testing.T) {
 	printConnState(resp.TLS, "Server")
 
 	// New certificate
-	name := cert.DefaultName()
+	name := cert.DefaultName
 	name.CommonName = "dummyServer2"
-	certPEM, certPrivKeyPEM, err := cert.CreateServerCertificate(
+	certPEM, certPrivKeyPEM, err := cert.CreateCertificate(
+		false, true,
 		time.Hour,
 		cert.DefaultCACrt,
 		cert.DefaultCAKey,
-		cert.DefaultIPAddresses(),
-		cert.DefaultDNSNames(),
+		cert.DefaultIPAddresses,
+		cert.DefaultDNSNames,
+		nil,
+		nil,
 		name,
-		cert.DefaultKeyType(),
+		cert.DefaultKeyType,
 	)
 	if err != nil {
 		t.Fatalf("cannot create client certificate: %v", err)
@@ -107,19 +110,20 @@ func TestHTTPMTLSConfig(t *testing.T) {
 	}
 	serverCertChannel <- &serverCert
 
-	name = cert.DefaultName()
+	name = cert.DefaultName
 	name.CommonName = "dummyClient2"
 
-	certPEM, certPrivKeyPEM, err = cert.CreateClientCertificate(
+	certPEM, certPrivKeyPEM, err = cert.CreateCertificate(
+		true, false,
 		time.Hour,
 		cert.DefaultCACrt,
 		cert.DefaultCAKey,
-		cert.DefaultIPAddresses(),
-		cert.DefaultDNSNames(),
+		cert.DefaultIPAddresses,
+		cert.DefaultDNSNames,
 		nil,
-		nil,
+		[]string{"grpc:dummy"},
 		name,
-		cert.DefaultKeyType(),
+		cert.DefaultKeyType,
 	)
 	if err != nil {
 		t.Fatalf("cannot create client tls config: %v", err)

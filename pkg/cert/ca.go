@@ -7,22 +7,24 @@ import (
 	"crypto/x509/pkix"
 	"emperror.dev/errors"
 	"encoding/pem"
-	"math/big"
 	"time"
 )
 
 func CreateCA(duration time.Duration, name *pkix.Name, keyType KeyType) (caPEM []byte, caPrivKeyPEM []byte, err error) {
+	if duration < 0 {
+		return nil, nil, errors.New("duration is required")
+	}
 	if keyType == "" {
-		keyType = DefaultKeyType()
+		return nil, nil, errors.New("keyType is required")
 	}
 	if name == nil {
-		name = DefaultName()
+		return nil, nil, errors.New("name is required")
 	}
 	ca := &x509.Certificate{
-		SerialNumber:          big.NewInt(time.Now().UnixMilli()),
+		SerialNumber:          getSerial(),
 		Subject:               *name,
 		NotBefore:             time.Now(),
-		NotAfter:              time.Now().Add(duration),
+		NotAfter:              time.Now().UTC().Add(duration),
 		IsCA:                  true,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
@@ -57,7 +59,7 @@ func CreateCA(duration time.Duration, name *pkix.Name, keyType KeyType) (caPEM [
 	}
 	caPrivKeyPEMBuffer := new(bytes.Buffer)
 	if err := pem.Encode(caPrivKeyPEMBuffer, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
+		Type:  PEMKeyType(caPrivKey),
 		Bytes: keyBytes,
 	}); err != nil {
 		return nil, nil, errors.Wrapf(err, "cannot encode private key")

@@ -6,15 +6,27 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"emperror.dev/errors"
-	"encoding/asn1"
 	"encoding/pem"
-	"fmt"
 	"math/big"
 	"net"
+	"net/url"
+	"sync"
 	"time"
 )
 
-func CreateClientServerCertificate(duration time.Duration, caPEM []byte, caPrivKeyPEM []byte, ips []net.IP, dnsNames []string, email, uri string, name *pkix.Name, keyType KeyType) (certPEM []byte, certPrivKeyPEM []byte, err error) {
+var getSerialMutex = &sync.Mutex{}
+
+func getSerial() *big.Int {
+	getSerialMutex.Lock()
+	defer getSerialMutex.Unlock()
+	defer time.Sleep(1 * time.Millisecond)
+	return big.NewInt(time.Now().UnixMilli())
+}
+
+func CreateCertificate(client, server bool, duration time.Duration, caPEM []byte, caPrivKeyPEM []byte, ips []net.IP, dnsNames []string, email, uri []string, name *pkix.Name, keyType KeyType) (certPEM []byte, certPrivKeyPEM []byte, err error) {
+	if !client && !server {
+		return nil, nil, errors.New("client and/or server must be true")
+	}
 	if keyType == "" {
 		return nil, nil, errors.New("keyType is required")
 	}
@@ -30,6 +42,7 @@ func CreateClientServerCertificate(duration time.Duration, caPEM []byte, caPrivK
 	if len(dnsNames) == 0 {
 		return nil, nil, errors.New("DNS name is required")
 	}
+
 	caBlock, _ := pem.Decode(caPEM)
 	if caBlock == nil {
 		return nil, nil, errors.New("cannot decode CA PEM")
@@ -49,25 +62,29 @@ func CreateClientServerCertificate(duration time.Duration, caPEM []byte, caPrivK
 
 	// set up our server certificate
 	cert := &x509.Certificate{
-		SerialNumber: big.NewInt(time.Now().UnixMilli()),
+		SerialNumber: getSerial(),
 		Subject:      *name,
 		IPAddresses:  ips,
 		DNSNames:     dnsNames,
 		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(duration),
+		NotAfter:     time.Now().UTC().Add(duration),
 		SubjectKeyId: []byte{1, 2, 3, 4, 6},
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		ExtKeyUsage:  []x509.ExtKeyUsage{},
 		KeyUsage:     x509.KeyUsageDigitalSignature,
 	}
-	if email != "" && uri != "" {
-		cert.ExtraExtensions = []pkix.Extension{
-			{
-				Id:       asn1.ObjectIdentifier{2, 5, 29, 17},
-				Critical: false,
-				Value:    []byte(fmt.Sprintf("email:%s, URI:%s", email, uri)),
-			},
+	if client {
+		cert.ExtKeyUsage = append(cert.ExtKeyUsage, x509.ExtKeyUsageClientAuth)
+	}
+	if server {
+		cert.ExtKeyUsage = append(cert.ExtKeyUsage, x509.ExtKeyUsageServerAuth)
+	}
+	cert.EmailAddresses = email
+	for _, u := range uri {
+		_u, err := url.Parse(u)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "cannot parse URI %s", u)
 		}
-
+		cert.URIs = append(cert.URIs, _u)
 	}
 
 	certPubKey, certPrivKey, err := GenerateKey(keyType)

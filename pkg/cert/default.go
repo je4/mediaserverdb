@@ -12,26 +12,17 @@ var DefaultCACrt []byte
 //go:embed dummyCA.key
 var DefaultCAKey []byte
 
-func DefaultKeyType() KeyType {
-	return ECDSAP384
+var DefaultKeyType KeyType = ECDSAP384
+
+var DefaultName = &pkix.Name{
+	Organization:  []string{"University Library Basel"},
+	Country:       []string{"CH"},
+	Province:      []string{"Basel City"},
+	Locality:      []string{"Basel"},
+	StreetAddress: []string{"Schönbeinstrasse 18-20"},
+	PostalCode:    []string{"4056"},
 }
 
-func DefaultName() *pkix.Name {
-	name := &pkix.Name{
-		Organization:  []string{"University of Basel"},
-		Country:       []string{"CH"},
-		Province:      []string{"Basel City"},
-		Locality:      []string{"Basel"},
-		StreetAddress: []string{"Schönbeinstrasse 18-20"},
-		PostalCode:    []string{"4056"},
-	}
-	return name
-}
+var DefaultDNSNames = []string{"localhost"}
 
-func DefaultDNSNames() []string {
-	return []string{"localhost"}
-}
-
-func DefaultIPAddresses() []net.IP {
-	return []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback}
-}
+var DefaultIPAddresses = []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback}

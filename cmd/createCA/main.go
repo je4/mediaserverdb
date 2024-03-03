@@ -7,9 +7,9 @@ import (
 )
 
 func main() {
-	name := cert.DefaultName()
+	name := cert.DefaultName
 	name.CommonName = "DummyCA"
-	ca, caPrivKey, err := cert.CreateCA(time.Hour*24*365*10, name, cert.DefaultKeyType())
+	ca, caPrivKey, err := cert.CreateCA(time.Hour*24*365*10, name, cert.DefaultKeyType)
 	if err != nil {
 		panic(err)
 	}
