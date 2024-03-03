@@ -4,6 +4,7 @@ import (
 	"crypto/x509/pkix"
 	_ "embed"
 	"net"
+	"time"
 )
 
 //go:embed dummyCA.crt
@@ -26,3 +27,20 @@ var DefaultName = &pkix.Name{
 var DefaultDNSNames = []string{"localhost"}
 
 var DefaultIPAddresses = []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback}
+
+var DefaultDuration = time.Hour * 24 * 365 * 10
+
+func CreateDefaultCertificate(client, server bool) ([]byte, []byte, error) {
+	return CreateCertificate(
+		client, server,
+		DefaultDuration,
+		DefaultCACrt,
+		DefaultCAKey,
+		DefaultIPAddresses,
+		DefaultDNSNames,
+		nil,
+		nil,
+		DefaultName,
+		DefaultKeyType,
+	)
+}
