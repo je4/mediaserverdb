@@ -1,9 +1,9 @@
-package tls
+package tlsutil
 
 import (
 	"bytes"
 	"crypto/tls"
-	"github.com/je4/mediaserverdb/v2/pkg/cert"
+	"github.com/je4/mediaserverdb/v2/pkg/certutil"
 	"io"
 	"log"
 	"net/http"
@@ -87,19 +87,23 @@ func TestHTTPMTLSConfig(t *testing.T) {
 	printConnState(resp.TLS, "Server")
 
 	// New certificate
-	name := cert.DefaultName
+	name := certutil.DefaultName
 	name.CommonName = "dummyServer2"
-	certPEM, certPrivKeyPEM, err := cert.CreateCertificate(
+	defaultCA, defaultCAPrivKey, err := certutil.CertificateKeyFromPEM(certutil.DefaultCACrt, certutil.DefaultCAKey, nil)
+	if err != nil {
+		t.Fatalf("cannot decode ca: %v", err)
+	}
+	certPEM, certPrivKeyPEM, err := certutil.CreateCertificate(
 		false, true,
 		time.Hour,
-		cert.DefaultCACrt,
-		cert.DefaultCAKey,
-		cert.DefaultIPAddresses,
-		cert.DefaultDNSNames,
+		defaultCA,
+		defaultCAPrivKey,
+		certutil.DefaultIPAddresses,
+		certutil.DefaultDNSNames,
 		nil,
 		nil,
 		name,
-		cert.DefaultKeyType,
+		certutil.DefaultKeyType,
 	)
 	if err != nil {
 		t.Fatalf("cannot create client certificate: %v", err)
@@ -110,20 +114,20 @@ func TestHTTPMTLSConfig(t *testing.T) {
 	}
 	serverCertChannel <- &serverCert
 
-	name = cert.DefaultName
+	name = certutil.DefaultName
 	name.CommonName = "dummyClient2"
 
-	certPEM, certPrivKeyPEM, err = cert.CreateCertificate(
+	certPEM, certPrivKeyPEM, err = certutil.CreateCertificate(
 		true, false,
 		time.Hour,
-		cert.DefaultCACrt,
-		cert.DefaultCAKey,
-		cert.DefaultIPAddresses,
-		cert.DefaultDNSNames,
+		defaultCA,
+		defaultCAPrivKey,
+		certutil.DefaultIPAddresses,
+		certutil.DefaultDNSNames,
 		nil,
 		[]string{"grpc:dummy"},
 		name,
-		cert.DefaultKeyType,
+		certutil.DefaultKeyType,
 	)
 	if err != nil {
 		t.Fatalf("cannot create client tls config: %v", err)

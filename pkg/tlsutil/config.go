@@ -1,10 +1,10 @@
-package tls
+package tlsutil
 
 import (
 	"crypto/tls"
 	"crypto/x509"
 	"emperror.dev/errors"
-	"github.com/je4/mediaserverdb/v2/pkg/cert"
+	"github.com/je4/mediaserverdb/v2/pkg/certutil"
 	"slices"
 	"time"
 )
@@ -65,19 +65,23 @@ func CreateServerTLSConfig(cert tls.Certificate, mutual bool, uris []string) (*t
 	return tlsConfig, nil
 }
 func CreateServerTLSConfigDefault(mutual bool, uris []string) (*tls.Config, error) {
-	name := cert.DefaultName
+	name := certutil.DefaultName
 	name.CommonName = "dummyServer"
-	certPEM, certPrivKeyPEM, err := cert.CreateCertificate(
+	defaultCA, defaultCAPrivKey, err := certutil.CertificateKeyFromPEM(certutil.DefaultCACrt, certutil.DefaultCAKey, nil)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	certPEM, certPrivKeyPEM, err := certutil.CreateCertificate(
 		false, true,
 		time.Hour*24*365*10,
-		cert.DefaultCACrt,
-		cert.DefaultCAKey,
-		cert.DefaultIPAddresses,
-		cert.DefaultDNSNames,
+		defaultCA,
+		defaultCAPrivKey,
+		certutil.DefaultIPAddresses,
+		certutil.DefaultDNSNames,
 		nil,
 		nil,
 		name,
-		cert.DefaultKeyType,
+		certutil.DefaultKeyType,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create server certificate")
@@ -92,7 +96,7 @@ func CreateServerTLSConfigDefault(mutual bool, uris []string) (*tls.Config, erro
 	}
 	tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(cert.DefaultCACrt)
+	caCertPool.AppendCertsFromPEM(certutil.DefaultCACrt)
 	tlsConfig.ClientCAs = caCertPool
 	return tlsConfig, nil
 }
@@ -102,7 +106,7 @@ func CreateClientMTLSConfig(clientCert tls.Certificate) (*tls.Config, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot get system cert pool")
 	}
-	certPool.AppendCertsFromPEM(cert.DefaultCACrt)
+	certPool.AppendCertsFromPEM(certutil.DefaultCACrt)
 
 	clientTLSConf := &tls.Config{
 		Certificates: []tls.Certificate{clientCert},
@@ -113,19 +117,23 @@ func CreateClientMTLSConfig(clientCert tls.Certificate) (*tls.Config, error) {
 }
 
 func CreateClientMTLSConfigDefault() (*tls.Config, error) {
-	name := cert.DefaultName
+	name := certutil.DefaultName
 	name.CommonName = "dummyClient"
-	certPEM, certPrivKeyPEM, err := cert.CreateCertificate(
+	defaultCA, defaultCAPrivKey, err := certutil.CertificateKeyFromPEM(certutil.DefaultCACrt, certutil.DefaultCAKey, nil)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	certPEM, certPrivKeyPEM, err := certutil.CreateCertificate(
 		true, false,
 		time.Hour*24*365*10,
-		cert.DefaultCACrt,
-		cert.DefaultCAKey,
-		cert.DefaultIPAddresses,
-		cert.DefaultDNSNames,
+		defaultCA,
+		defaultCAPrivKey,
+		certutil.DefaultIPAddresses,
+		certutil.DefaultDNSNames,
 		nil,
 		[]string{"grpc:dummy"},
 		name,
-		cert.DefaultKeyType,
+		certutil.DefaultKeyType,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create client certificate")

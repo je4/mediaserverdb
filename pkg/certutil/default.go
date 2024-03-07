@@ -1,8 +1,9 @@
-package cert
+package certutil
 
 import (
 	"crypto/x509/pkix"
 	_ "embed"
+	"emperror.dev/errors"
 	"net"
 	"time"
 )
@@ -31,11 +32,15 @@ var DefaultIPAddresses = []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback}
 var DefaultDuration = time.Hour * 24 * 365 * 10
 
 func CreateDefaultCertificate(client, server bool) ([]byte, []byte, error) {
+	defaultCA, defaultCAPrivKey, err := CertificateKeyFromPEM(DefaultCACrt, DefaultCAKey, nil)
+	if err != nil {
+		return nil, nil, errors.WithStack(err)
+	}
 	return CreateCertificate(
 		client, server,
 		DefaultDuration,
-		DefaultCACrt,
-		DefaultCAKey,
+		defaultCA,
+		defaultCAPrivKey,
 		DefaultIPAddresses,
 		DefaultDNSNames,
 		nil,

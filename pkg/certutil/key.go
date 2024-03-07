@@ -1,12 +1,16 @@
-package cert
+package certutil
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
 	"emperror.dev/errors"
+	"encoding/pem"
+	"go.step.sm/crypto/pemutil"
 	"log"
 )
 
@@ -77,4 +81,45 @@ func GenerateKey(keyType KeyType) (pub any, priv any, err error) {
 		pub = publicKey(priv)
 	}
 	return
+}
+
+func EncryptPrivateKey(data, password []byte) ([]byte, error) {
+	key, err := pemutil.Parse(data)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot parse private key")
+	}
+	pkcs8Data, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot marshal private key")
+	}
+	pemBlock, err := pemutil.EncryptPKCS8PrivateKey(rand.Reader, pkcs8Data, password, x509.PEMCipherAES256)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot encrypt private key")
+	}
+	caPrivKeyPEMBuffer := new(bytes.Buffer)
+	if err := pem.Encode(caPrivKeyPEMBuffer, pemBlock); err != nil {
+		return nil, errors.Wrapf(err, "cannot encode private key")
+	}
+
+	return caPrivKeyPEMBuffer.Bytes(), nil
+
+}
+
+func DecryptPrivateKey(data, password []byte) ([]byte, error) {
+	pemBlock, _ := pem.Decode(data)
+	if pemBlock.Type != "ENCRYPTED PRIVATE KEY" {
+		return nil, errors.Errorf("invalid PEM block type: %s", pemBlock.Type)
+	}
+	data, err := pemutil.DecryptPKCS8PrivateKey(pemBlock.Bytes, password)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot decrypt private key")
+	}
+	privKeyPEMBuffer := new(bytes.Buffer)
+	if err := pem.Encode(privKeyPEMBuffer, &pem.Block{
+		Type:  "PRIVATE KEY", // PEMKeyType(caPrivKey),
+		Bytes: data,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "cannot encode private key")
+	}
+	return privKeyPEMBuffer.Bytes(), nil
 }

@@ -1,4 +1,4 @@
-package cert
+package certutil
 
 import (
 	"bytes"
@@ -59,7 +59,7 @@ func CreateCA(duration time.Duration, name *pkix.Name, keyType KeyType) (caPEM [
 	}
 	caPrivKeyPEMBuffer := new(bytes.Buffer)
 	if err := pem.Encode(caPrivKeyPEMBuffer, &pem.Block{
-		Type:  PEMKeyType(caPrivKey),
+		Type:  "PRIVATE KEY", // PEMKeyType(caPrivKey),
 		Bytes: keyBytes,
 	}); err != nil {
 		return nil, nil, errors.Wrapf(err, "cannot encode private key")

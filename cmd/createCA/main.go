@@ -1,18 +1,28 @@
 package main
 
 import (
-	"github.com/je4/mediaserverdb/v2/pkg/cert"
+	"github.com/je4/mediaserverdb/v2/pkg/certutil"
+	"log"
 	"os"
 	"time"
 )
 
 func main() {
-	name := cert.DefaultName
-	name.CommonName = "DummyCA"
-	ca, caPrivKey, err := cert.CreateCA(time.Hour*24*365*10, name, cert.DefaultKeyType)
+	pwd := os.Getenv("CA_KEY_PASS")
+	if pwd == "" {
+		log.Panicf("CA_KEY_PASS not set")
+	}
+
+	name := certutil.DefaultName
+	name.CommonName = "MiniVault CA"
+	ca, caPrivKey, err := certutil.CreateCA(time.Hour*24*365*10, name, certutil.DefaultKeyType)
 	if err != nil {
 		panic(err)
 	}
+	encCAPrivKey, err := certutil.EncryptPrivateKey(caPrivKey, []byte(pwd))
+	if err != nil {
+		log.Panicf("cannot encrypt private key: %v", err)
+	}
 	os.WriteFile("ca.crt", ca, 0644)
-	os.WriteFile("ca.key", caPrivKey, 0644)
+	os.WriteFile("ca.key", encCAPrivKey, 0644)
 }

@@ -1,4 +1,4 @@
-package cert
+package certutil
 
 import (
 	"bytes"
@@ -23,42 +23,39 @@ func getSerial() *big.Int {
 	return big.NewInt(time.Now().UnixMilli())
 }
 
-func CreateCertificate(client, server bool, duration time.Duration, caPEM []byte, caPrivKeyPEM []byte, ips []net.IP, dnsNames []string, email, uri []string, name *pkix.Name, keyType KeyType) (certPEM []byte, certPrivKeyPEM []byte, err error) {
+func CreateCertificate(client, server bool, duration time.Duration, ca *x509.Certificate, caPrivKey any, ips []net.IP, dnsNames []string, email, uri []string, name *pkix.Name, keyType KeyType) (certPEM []byte, certPrivKeyPEM []byte, err error) {
 	if !client && !server {
 		return nil, nil, errors.New("client and/or server must be true")
 	}
 	if keyType == "" {
 		return nil, nil, errors.New("keyType is required")
 	}
-	if caPEM == nil || caPrivKeyPEM == nil {
-		return nil, nil, errors.New("CA certificate and private key are required")
-	}
 	if name == nil {
 		return nil, nil, errors.New("name is required")
 	}
-	if len(ips) == 0 {
-		return nil, nil, errors.New("IP address is required")
-	}
-	if len(dnsNames) == 0 {
-		return nil, nil, errors.New("DNS name is required")
+	if server && len(ips) == 0 && len(dnsNames) == 0 {
+		return nil, nil, errors.New("IP address and/or DNS name is required")
 	}
 
-	caBlock, _ := pem.Decode(caPEM)
-	if caBlock == nil {
-		return nil, nil, errors.New("cannot decode CA PEM")
-	}
-	ca, err := x509.ParseCertificate(caBlock.Bytes)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "cannot parse CA certificate")
-	}
-	caPrivKeyBlock, _ := pem.Decode(caPrivKeyPEM)
-	if caPrivKeyBlock == nil {
-		return nil, nil, errors.New("cannot decode CA private key PEM")
-	}
-	caPrivKey, err := x509.ParsePKCS8PrivateKey(caPrivKeyBlock.Bytes)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "cannot parse CA private key")
-	}
+	/*
+		caBlock, _ := pem.Decode(caPEM)
+		if caBlock == nil {
+			return nil, nil, errors.New("cannot decode CA PEM")
+		}
+		ca, err := x509.ParseCertificate(caBlock.Bytes)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "cannot parse CA certificate")
+		}
+		caPrivKeyBlock, _ := pem.Decode(caPrivKeyPEM)
+		if caPrivKeyBlock == nil {
+			return nil, nil, errors.New("cannot decode CA private key PEM")
+		}
+		caPrivKey, err := x509.ParsePKCS8PrivateKey(caPrivKeyBlock.Bytes)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "cannot parse CA private key")
+		}
+
+	*/
 
 	// set up our server certificate
 	cert := &x509.Certificate{
@@ -110,7 +107,7 @@ func CreateCertificate(client, server bool, duration time.Duration, caPEM []byte
 	}
 	certPrivKeyPEMBuffer := new(bytes.Buffer)
 	pem.Encode(certPrivKeyPEMBuffer, &pem.Block{
-		Type:  PEMKeyType(certPrivKey),
+		Type:  "PRIVATE KEY", // PEMKeyType(certPrivKey),
 		Bytes: certPrivKeyPEMBytes,
 	})
 	certPrivKeyPEM = certPrivKeyPEMBuffer.Bytes()
