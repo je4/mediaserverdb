@@ -15,7 +15,32 @@ import (
 )
 
 func TestServer(t *testing.T) {
-	serverTLSConfig, err := tlsutil.CreateServerTLSConfigDefault(true, nil)
+	name := certutil.DefaultName
+	name.CommonName = "dummyServer"
+	defaultCA, defaultCAPrivKey, err := certutil.CertificateKeyFromPEM(certutil.DefaultCACrt, certutil.DefaultCAKey, nil)
+	if err != nil {
+		t.Fatalf("cannot decode ca: %v", err)
+	}
+	certPEM, certPrivKeyPEM, err := certutil.CreateCertificate(
+		false, true,
+		time.Hour*24*365*10,
+		defaultCA,
+		defaultCAPrivKey,
+		certutil.DefaultIPAddresses,
+		certutil.DefaultDNSNames,
+		nil,
+		nil,
+		name,
+		certutil.DefaultKeyType,
+	)
+	if err != nil {
+		t.Fatalf("cannot create client certificate: %v", err)
+	}
+	serverCert, err := tls.X509KeyPair(certPEM, certPrivKeyPEM)
+	if err != nil {
+		t.Fatalf("cannot create client certificate: %v", err)
+	}
+	serverTLSConfig, err := tlsutil.CreateServerTLSConfig(serverCert, true, nil, [][]byte{certutil.DefaultCACrt})
 	if err != nil {
 		t.Fatalf("cannot create tls config: %v", err)
 	}
@@ -40,7 +65,28 @@ func TestServer(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 
-	clientTLSConfig, err := tlsutil.CreateClientMTLSConfigDefault([]string{"grpc:DBController"})
+	name = certutil.DefaultName
+	name.CommonName = "dummyClient"
+	certPEM, certPrivKeyPEM, err = certutil.CreateCertificate(
+		true, false,
+		time.Hour*24*365*10,
+		defaultCA,
+		defaultCAPrivKey,
+		certutil.DefaultIPAddresses,
+		certutil.DefaultDNSNames,
+		nil,
+		[]string{"grpc:mediaserverdbproto.DBController"},
+		name,
+		certutil.DefaultKeyType,
+	)
+	if err != nil {
+		t.Fatalf("cannot create client tls config: %v", err)
+	}
+	clientCert, err := tls.X509KeyPair(certPEM, certPrivKeyPEM)
+	if err != nil {
+		t.Fatalf("cannot create client certificate: %v", err)
+	}
+	clientTLSConfig, err := tlsutil.CreateClientMTLSConfig(clientCert, [][]byte{certutil.DefaultCACrt})
 	if err != nil {
 		t.Fatalf("cannot create tls config: %v", err)
 	}
