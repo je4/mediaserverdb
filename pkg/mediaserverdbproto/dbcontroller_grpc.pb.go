@@ -4,7 +4,7 @@
 // - protoc             v4.25.3
 // source: dbcontroller.proto
 
-package proto
+package mediaserverdbproto
 
 import (
 	context "context"
@@ -19,7 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	DBController_CreateItem_FullMethodName = "/proto.DBController/CreateItem"
+	DBController_CreateItem_FullMethodName = "/mediaserverdbproto.DBController/CreateItem"
 )
 
 // DBControllerClient is the client API for DBController service.
@@ -96,7 +96,7 @@ func _DBController_CreateItem_Handler(srv interface{}, ctx context.Context, dec 
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var DBController_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "proto.DBController",
+	ServiceName: "mediaserverdbproto.DBController",
 	HandlerType: (*DBControllerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

@@ -1,13 +1,13 @@
 syntax = "proto3";
 
-option go_package = "github.com/je4/mediaserverdb/v2/pkg/proto";
+option go_package = "github.com/je4/mediaserverdb/v2/pkg/mediaserverdbproto";
 option java_package = "ch.unibas.ub.mediaserver.db";
 option java_outer_classname = "ItemProto";
 option java_multiple_files = true;
 option objc_class_prefix = "UBB";
 option csharp_namespace = "Unibas.UB.Mediaserver.DB";
 
-package proto;
+package mediaserverdbproto;
 
 import "item.proto";
 import "defaultResponse.proto";

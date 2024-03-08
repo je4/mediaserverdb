@@ -3,7 +3,7 @@ package client
 import (
 	"crypto/tls"
 	"emperror.dev/errors"
-	pb "github.com/je4/mediaserverdb/v2/pkg/proto"
+	pb "github.com/je4/mediaserverdb/v2/pkg/mediaserverdbproto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"

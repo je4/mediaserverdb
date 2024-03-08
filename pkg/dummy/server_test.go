@@ -2,9 +2,10 @@ package dummy
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"github.com/je4/mediaserverdb/v2/pkg/client"
-	pb "github.com/je4/mediaserverdb/v2/pkg/proto"
+	pb "github.com/je4/mediaserverdb/v2/pkg/mediaserverdbproto"
 	"github.com/je4/trustutil/v2/pkg/certutil"
 	"github.com/je4/trustutil/v2/pkg/grpchelper"
 	"github.com/je4/trustutil/v2/pkg/tlsutil"
@@ -18,11 +19,11 @@ func TestServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot create tls config: %v", err)
 	}
-	serverCertChan, err := tlsutil.UpgradeTLSConfigServerExchanger(serverTLSConfig)
-	if err != nil {
+	serverCertChan := make(chan *tls.Certificate)
+	if err := tlsutil.UpgradeTLSConfigServerExchanger(serverTLSConfig, serverCertChan); err != nil {
 		t.Fatalf("cannot upgrade tls config: %v", err)
 	}
-	_ = serverCertChan
+	defer close(serverCertChan)
 
 	serverTLSConfig.ClientCAs = x509.NewCertPool()
 	if !serverTLSConfig.ClientCAs.AppendCertsFromPEM(certutil.DefaultCACrt) {
