@@ -9,9 +9,14 @@ option csharp_namespace = "Unibas.UB.Mediaserver.DB";
 
 package mediaserverdbproto;
 
+import "storage.proto";
+import "collection.proto";
 import "item.proto";
 import "defaultResponse.proto";
 
 service DBController {
+  rpc GetStorage(StorageIdentifier) returns (Storage) {}
+  rpc GetCollection(CollectionIdentifier) returns (Collection) {}
   rpc CreateItem(NewItem) returns (DefaultResponse) {}
+  rpc DeleteItem(ItemIdentifier) returns (DefaultResponse) {}
 }

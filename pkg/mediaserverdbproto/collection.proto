@@ -9,16 +9,18 @@ option csharp_namespace = "Unibas.UB.Mediaserver.DB";
 
 package mediaserverdbproto;
 
-import "google/protobuf/any.proto";
-
-enum ResultStatus {
-  Error = 0;
-  OK = 1;
-  Warning = 2;
+message CollectionIdentifier {
+  string collection = 1;
 }
 
-message DefaultResponse {
-  ResultStatus status = 1;
-  string message = 2;
-  optional google.protobuf.Any data = 3;
+message Collection {
+  string id = 1;
+  CollectionIdentifier identifier = 2;
+  string name = 3;
+  string description = 4;
+  string signature_prefix = 5;
+  string secret = 6;
+  bool public = 7;
+  string jwtkey = 8;
+  string storageid = 9;
 }

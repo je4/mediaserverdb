@@ -19,14 +19,20 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	DBController_CreateItem_FullMethodName = "/mediaserverdbproto.DBController/CreateItem"
+	DBController_GetStorage_FullMethodName    = "/mediaserverdbproto.DBController/GetStorage"
+	DBController_GetCollection_FullMethodName = "/mediaserverdbproto.DBController/GetCollection"
+	DBController_CreateItem_FullMethodName    = "/mediaserverdbproto.DBController/CreateItem"
+	DBController_DeleteItem_FullMethodName    = "/mediaserverdbproto.DBController/DeleteItem"
 )
 
 // DBControllerClient is the client API for DBController service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DBControllerClient interface {
+	GetStorage(ctx context.Context, in *StorageIdentifier, opts ...grpc.CallOption) (*Storage, error)
+	GetCollection(ctx context.Context, in *CollectionIdentifier, opts ...grpc.CallOption) (*Collection, error)
 	CreateItem(ctx context.Context, in *NewItem, opts ...grpc.CallOption) (*DefaultResponse, error)
+	DeleteItem(ctx context.Context, in *ItemIdentifier, opts ...grpc.CallOption) (*DefaultResponse, error)
 }
 
 type dBControllerClient struct {
@@ -35,6 +41,24 @@ type dBControllerClient struct {
 
 func NewDBControllerClient(cc grpc.ClientConnInterface) DBControllerClient {
 	return &dBControllerClient{cc}
+}
+
+func (c *dBControllerClient) GetStorage(ctx context.Context, in *StorageIdentifier, opts ...grpc.CallOption) (*Storage, error) {
+	out := new(Storage)
+	err := c.cc.Invoke(ctx, DBController_GetStorage_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dBControllerClient) GetCollection(ctx context.Context, in *CollectionIdentifier, opts ...grpc.CallOption) (*Collection, error) {
+	out := new(Collection)
+	err := c.cc.Invoke(ctx, DBController_GetCollection_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *dBControllerClient) CreateItem(ctx context.Context, in *NewItem, opts ...grpc.CallOption) (*DefaultResponse, error) {
@@ -46,11 +70,23 @@ func (c *dBControllerClient) CreateItem(ctx context.Context, in *NewItem, opts .
 	return out, nil
 }
 
+func (c *dBControllerClient) DeleteItem(ctx context.Context, in *ItemIdentifier, opts ...grpc.CallOption) (*DefaultResponse, error) {
+	out := new(DefaultResponse)
+	err := c.cc.Invoke(ctx, DBController_DeleteItem_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DBControllerServer is the server API for DBController service.
 // All implementations must embed UnimplementedDBControllerServer
 // for forward compatibility
 type DBControllerServer interface {
+	GetStorage(context.Context, *StorageIdentifier) (*Storage, error)
+	GetCollection(context.Context, *CollectionIdentifier) (*Collection, error)
 	CreateItem(context.Context, *NewItem) (*DefaultResponse, error)
+	DeleteItem(context.Context, *ItemIdentifier) (*DefaultResponse, error)
 	mustEmbedUnimplementedDBControllerServer()
 }
 
@@ -58,8 +94,17 @@ type DBControllerServer interface {
 type UnimplementedDBControllerServer struct {
 }
 
+func (UnimplementedDBControllerServer) GetStorage(context.Context, *StorageIdentifier) (*Storage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetStorage not implemented")
+}
+func (UnimplementedDBControllerServer) GetCollection(context.Context, *CollectionIdentifier) (*Collection, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCollection not implemented")
+}
 func (UnimplementedDBControllerServer) CreateItem(context.Context, *NewItem) (*DefaultResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateItem not implemented")
+}
+func (UnimplementedDBControllerServer) DeleteItem(context.Context, *ItemIdentifier) (*DefaultResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteItem not implemented")
 }
 func (UnimplementedDBControllerServer) mustEmbedUnimplementedDBControllerServer() {}
 
@@ -72,6 +117,42 @@ type UnsafeDBControllerServer interface {
 
 func RegisterDBControllerServer(s grpc.ServiceRegistrar, srv DBControllerServer) {
 	s.RegisterService(&DBController_ServiceDesc, srv)
+}
+
+func _DBController_GetStorage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StorageIdentifier)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DBControllerServer).GetStorage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DBController_GetStorage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DBControllerServer).GetStorage(ctx, req.(*StorageIdentifier))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DBController_GetCollection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CollectionIdentifier)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DBControllerServer).GetCollection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DBController_GetCollection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DBControllerServer).GetCollection(ctx, req.(*CollectionIdentifier))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _DBController_CreateItem_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -92,6 +173,24 @@ func _DBController_CreateItem_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DBController_DeleteItem_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ItemIdentifier)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DBControllerServer).DeleteItem(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DBController_DeleteItem_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DBControllerServer).DeleteItem(ctx, req.(*ItemIdentifier))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DBController_ServiceDesc is the grpc.ServiceDesc for DBController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -100,8 +199,20 @@ var DBController_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*DBControllerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "GetStorage",
+			Handler:    _DBController_GetStorage_Handler,
+		},
+		{
+			MethodName: "GetCollection",
+			Handler:    _DBController_GetCollection_Handler,
+		},
+		{
 			MethodName: "CreateItem",
 			Handler:    _DBController_CreateItem_Handler,
+		},
+		{
+			MethodName: "DeleteItem",
+			Handler:    _DBController_DeleteItem_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

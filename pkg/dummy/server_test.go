@@ -54,6 +54,7 @@ func TestServer(t *testing.T) {
 	if !serverTLSConfig.ClientCAs.AppendCertsFromPEM(certutil.DefaultCACrt) {
 		t.Fatalf("cannot append ca cert")
 	}
+
 	logger := zerolog.New(zerolog.NewConsoleWriter()).With().Timestamp().Logger()
 	srv, err := grpchelper.NewServer("localhost:12345", serverTLSConfig, &logger)
 	if err != nil {
