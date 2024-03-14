@@ -13,8 +13,10 @@ import "storage.proto";
 import "collection.proto";
 import "item.proto";
 import "defaultResponse.proto";
+import "google/protobuf/empty.proto";
 
 service DBController {
+  rpc Ping(google.protobuf.Empty) returns (DefaultResponse) {}
   rpc GetStorage(StorageIdentifier) returns (Storage) {}
   rpc GetCollection(CollectionIdentifier) returns (Collection) {}
   rpc CreateItem(NewItem) returns (DefaultResponse) {}

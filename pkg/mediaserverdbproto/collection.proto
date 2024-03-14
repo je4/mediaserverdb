@@ -16,11 +16,10 @@ message CollectionIdentifier {
 message Collection {
   string id = 1;
   CollectionIdentifier identifier = 2;
-  string name = 3;
-  string description = 4;
-  string signature_prefix = 5;
-  string secret = 6;
-  bool public = 7;
-  string jwtkey = 8;
-  string storageid = 9;
+  string description = 3;
+  string signature_prefix = 4;
+  string secret = 5;
+  string public = 6;
+  string jwtkey = 7;
+  string storageid = 8;
 }

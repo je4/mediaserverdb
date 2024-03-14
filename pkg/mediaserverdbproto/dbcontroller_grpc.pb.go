@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -19,6 +20,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
+	DBController_Ping_FullMethodName          = "/mediaserverdbproto.DBController/Ping"
 	DBController_GetStorage_FullMethodName    = "/mediaserverdbproto.DBController/GetStorage"
 	DBController_GetCollection_FullMethodName = "/mediaserverdbproto.DBController/GetCollection"
 	DBController_CreateItem_FullMethodName    = "/mediaserverdbproto.DBController/CreateItem"
@@ -29,6 +31,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DBControllerClient interface {
+	Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*DefaultResponse, error)
 	GetStorage(ctx context.Context, in *StorageIdentifier, opts ...grpc.CallOption) (*Storage, error)
 	GetCollection(ctx context.Context, in *CollectionIdentifier, opts ...grpc.CallOption) (*Collection, error)
 	CreateItem(ctx context.Context, in *NewItem, opts ...grpc.CallOption) (*DefaultResponse, error)
@@ -41,6 +44,15 @@ type dBControllerClient struct {
 
 func NewDBControllerClient(cc grpc.ClientConnInterface) DBControllerClient {
 	return &dBControllerClient{cc}
+}
+
+func (c *dBControllerClient) Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*DefaultResponse, error) {
+	out := new(DefaultResponse)
+	err := c.cc.Invoke(ctx, DBController_Ping_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *dBControllerClient) GetStorage(ctx context.Context, in *StorageIdentifier, opts ...grpc.CallOption) (*Storage, error) {
@@ -83,6 +95,7 @@ func (c *dBControllerClient) DeleteItem(ctx context.Context, in *ItemIdentifier,
 // All implementations must embed UnimplementedDBControllerServer
 // for forward compatibility
 type DBControllerServer interface {
+	Ping(context.Context, *emptypb.Empty) (*DefaultResponse, error)
 	GetStorage(context.Context, *StorageIdentifier) (*Storage, error)
 	GetCollection(context.Context, *CollectionIdentifier) (*Collection, error)
 	CreateItem(context.Context, *NewItem) (*DefaultResponse, error)
@@ -94,6 +107,9 @@ type DBControllerServer interface {
 type UnimplementedDBControllerServer struct {
 }
 
+func (UnimplementedDBControllerServer) Ping(context.Context, *emptypb.Empty) (*DefaultResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+}
 func (UnimplementedDBControllerServer) GetStorage(context.Context, *StorageIdentifier) (*Storage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetStorage not implemented")
 }
@@ -117,6 +133,24 @@ type UnsafeDBControllerServer interface {
 
 func RegisterDBControllerServer(s grpc.ServiceRegistrar, srv DBControllerServer) {
 	s.RegisterService(&DBController_ServiceDesc, srv)
+}
+
+func _DBController_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DBControllerServer).Ping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DBController_Ping_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DBControllerServer).Ping(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _DBController_GetStorage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -198,6 +232,10 @@ var DBController_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "mediaserverdbproto.DBController",
 	HandlerType: (*DBControllerServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Ping",
+			Handler:    _DBController_Ping_Handler,
+		},
 		{
 			MethodName: "GetStorage",
 			Handler:    _DBController_GetStorage_Handler,
