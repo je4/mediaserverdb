@@ -21,4 +21,6 @@ service DBController {
   rpc GetCollection(CollectionIdentifier) returns (Collection) {}
   rpc CreateItem(NewItem) returns (DefaultResponse) {}
   rpc DeleteItem(ItemIdentifier) returns (DefaultResponse) {}
+  rpc GetIngestItem(google.protobuf.Empty) returns (IngestItem) {}
+  rpc ExistsItem(ItemIdentifier) returns (DefaultResponse) {}
 }

@@ -17,10 +17,13 @@ message ItemIdentifier {
 message NewItem {
   ItemIdentifier identifier = 1;
   string urn = 2;
-  bool public = 3;
+  optional bytes public = 3;
   optional ItemIdentifier parent = 4;
   optional bytes publicActions = 5;
 }
 
-
+message IngestItem {
+  ItemIdentifier identifier = 1;
+  string urn = 2;
+}
 

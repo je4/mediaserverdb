@@ -25,6 +25,8 @@ const (
 	DBController_GetCollection_FullMethodName = "/mediaserverdbproto.DBController/GetCollection"
 	DBController_CreateItem_FullMethodName    = "/mediaserverdbproto.DBController/CreateItem"
 	DBController_DeleteItem_FullMethodName    = "/mediaserverdbproto.DBController/DeleteItem"
+	DBController_GetIngestItem_FullMethodName = "/mediaserverdbproto.DBController/GetIngestItem"
+	DBController_ExistsItem_FullMethodName    = "/mediaserverdbproto.DBController/ExistsItem"
 )
 
 // DBControllerClient is the client API for DBController service.
@@ -36,6 +38,8 @@ type DBControllerClient interface {
 	GetCollection(ctx context.Context, in *CollectionIdentifier, opts ...grpc.CallOption) (*Collection, error)
 	CreateItem(ctx context.Context, in *NewItem, opts ...grpc.CallOption) (*DefaultResponse, error)
 	DeleteItem(ctx context.Context, in *ItemIdentifier, opts ...grpc.CallOption) (*DefaultResponse, error)
+	GetIngestItem(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IngestItem, error)
+	ExistsItem(ctx context.Context, in *ItemIdentifier, opts ...grpc.CallOption) (*DefaultResponse, error)
 }
 
 type dBControllerClient struct {
@@ -91,6 +95,24 @@ func (c *dBControllerClient) DeleteItem(ctx context.Context, in *ItemIdentifier,
 	return out, nil
 }
 
+func (c *dBControllerClient) GetIngestItem(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IngestItem, error) {
+	out := new(IngestItem)
+	err := c.cc.Invoke(ctx, DBController_GetIngestItem_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dBControllerClient) ExistsItem(ctx context.Context, in *ItemIdentifier, opts ...grpc.CallOption) (*DefaultResponse, error) {
+	out := new(DefaultResponse)
+	err := c.cc.Invoke(ctx, DBController_ExistsItem_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DBControllerServer is the server API for DBController service.
 // All implementations must embed UnimplementedDBControllerServer
 // for forward compatibility
@@ -100,6 +122,8 @@ type DBControllerServer interface {
 	GetCollection(context.Context, *CollectionIdentifier) (*Collection, error)
 	CreateItem(context.Context, *NewItem) (*DefaultResponse, error)
 	DeleteItem(context.Context, *ItemIdentifier) (*DefaultResponse, error)
+	GetIngestItem(context.Context, *emptypb.Empty) (*IngestItem, error)
+	ExistsItem(context.Context, *ItemIdentifier) (*DefaultResponse, error)
 	mustEmbedUnimplementedDBControllerServer()
 }
 
@@ -121,6 +145,12 @@ func (UnimplementedDBControllerServer) CreateItem(context.Context, *NewItem) (*D
 }
 func (UnimplementedDBControllerServer) DeleteItem(context.Context, *ItemIdentifier) (*DefaultResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteItem not implemented")
+}
+func (UnimplementedDBControllerServer) GetIngestItem(context.Context, *emptypb.Empty) (*IngestItem, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetIngestItem not implemented")
+}
+func (UnimplementedDBControllerServer) ExistsItem(context.Context, *ItemIdentifier) (*DefaultResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExistsItem not implemented")
 }
 func (UnimplementedDBControllerServer) mustEmbedUnimplementedDBControllerServer() {}
 
@@ -225,6 +255,42 @@ func _DBController_DeleteItem_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DBController_GetIngestItem_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DBControllerServer).GetIngestItem(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DBController_GetIngestItem_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DBControllerServer).GetIngestItem(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DBController_ExistsItem_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ItemIdentifier)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DBControllerServer).ExistsItem(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DBController_ExistsItem_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DBControllerServer).ExistsItem(ctx, req.(*ItemIdentifier))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DBController_ServiceDesc is the grpc.ServiceDesc for DBController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -251,6 +317,14 @@ var DBController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteItem",
 			Handler:    _DBController_DeleteItem_Handler,
+		},
+		{
+			MethodName: "GetIngestItem",
+			Handler:    _DBController_GetIngestItem_Handler,
+		},
+		{
+			MethodName: "ExistsItem",
+			Handler:    _DBController_ExistsItem_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
