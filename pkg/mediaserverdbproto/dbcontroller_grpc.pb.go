@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion7
 
 const (
 	DBController_Ping_FullMethodName          = "/mediaserverdbproto.DBController/Ping"
+	DBController_GetItem_FullMethodName       = "/mediaserverdbproto.DBController/GetItem"
 	DBController_GetStorage_FullMethodName    = "/mediaserverdbproto.DBController/GetStorage"
 	DBController_GetCollection_FullMethodName = "/mediaserverdbproto.DBController/GetCollection"
 	DBController_CreateItem_FullMethodName    = "/mediaserverdbproto.DBController/CreateItem"
@@ -34,6 +35,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DBControllerClient interface {
 	Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*DefaultResponse, error)
+	GetItem(ctx context.Context, in *ItemIdentifier, opts ...grpc.CallOption) (*Item, error)
 	GetStorage(ctx context.Context, in *StorageIdentifier, opts ...grpc.CallOption) (*Storage, error)
 	GetCollection(ctx context.Context, in *CollectionIdentifier, opts ...grpc.CallOption) (*Collection, error)
 	CreateItem(ctx context.Context, in *NewItem, opts ...grpc.CallOption) (*DefaultResponse, error)
@@ -53,6 +55,15 @@ func NewDBControllerClient(cc grpc.ClientConnInterface) DBControllerClient {
 func (c *dBControllerClient) Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*DefaultResponse, error) {
 	out := new(DefaultResponse)
 	err := c.cc.Invoke(ctx, DBController_Ping_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dBControllerClient) GetItem(ctx context.Context, in *ItemIdentifier, opts ...grpc.CallOption) (*Item, error) {
+	out := new(Item)
+	err := c.cc.Invoke(ctx, DBController_GetItem_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -118,6 +129,7 @@ func (c *dBControllerClient) ExistsItem(ctx context.Context, in *ItemIdentifier,
 // for forward compatibility
 type DBControllerServer interface {
 	Ping(context.Context, *emptypb.Empty) (*DefaultResponse, error)
+	GetItem(context.Context, *ItemIdentifier) (*Item, error)
 	GetStorage(context.Context, *StorageIdentifier) (*Storage, error)
 	GetCollection(context.Context, *CollectionIdentifier) (*Collection, error)
 	CreateItem(context.Context, *NewItem) (*DefaultResponse, error)
@@ -133,6 +145,9 @@ type UnimplementedDBControllerServer struct {
 
 func (UnimplementedDBControllerServer) Ping(context.Context, *emptypb.Empty) (*DefaultResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+}
+func (UnimplementedDBControllerServer) GetItem(context.Context, *ItemIdentifier) (*Item, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetItem not implemented")
 }
 func (UnimplementedDBControllerServer) GetStorage(context.Context, *StorageIdentifier) (*Storage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetStorage not implemented")
@@ -179,6 +194,24 @@ func _DBController_Ping_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DBControllerServer).Ping(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DBController_GetItem_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ItemIdentifier)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DBControllerServer).GetItem(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DBController_GetItem_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DBControllerServer).GetItem(ctx, req.(*ItemIdentifier))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -301,6 +334,10 @@ var DBController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ping",
 			Handler:    _DBController_Ping_Handler,
+		},
+		{
+			MethodName: "GetItem",
+			Handler:    _DBController_GetItem_Handler,
 		},
 		{
 			MethodName: "GetStorage",

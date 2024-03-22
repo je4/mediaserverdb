@@ -9,6 +9,8 @@ option csharp_namespace = "Unibas.UB.Mediaserver.DB";
 
 package mediaserverdbproto;
 
+import "google/protobuf/timestamp.proto";
+
 message ItemIdentifier {
   string collection = 1;
   string signature = 2;
@@ -27,3 +29,21 @@ message IngestItem {
   string urn = 2;
 }
 
+message Item {
+  ItemIdentifier identifier = 1;
+  string urn = 2;
+  optional string type = 3;
+  optional string subtype = 4;
+  optional string objecttype = 5;
+  optional string mimetype = 6;
+  optional string error = 7;
+  optional string sha512 = 8;
+  optional bytes metadata = 9;
+  google.protobuf.Timestamp created = 10;
+  google.protobuf.Timestamp updated = 11;
+  bool disabled = 12;
+  bool public = 13;
+  optional bytes publicActions = 14;
+  string status = 16;
+  optional ItemIdentifier parent = 17;
+}

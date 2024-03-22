@@ -17,6 +17,7 @@ import "google/protobuf/empty.proto";
 
 service DBController {
   rpc Ping(google.protobuf.Empty) returns (DefaultResponse) {}
+  rpc GetItem(ItemIdentifier) returns (Item) {}
   rpc GetStorage(StorageIdentifier) returns (Storage) {}
   rpc GetCollection(CollectionIdentifier) returns (Collection) {}
   rpc CreateItem(NewItem) returns (DefaultResponse) {}
